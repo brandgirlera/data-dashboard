@@ -30,11 +30,14 @@ if uploaded_file is not None:
     # Read CSV
     df = pd.read_csv(uploaded_file)
 
-    # --- FIX: Remove duplicate column names ---
-    # If duplicate column names exist, make them unique
-    df.columns = pd.io.parsers.ParserBase({'names':df.columns})._maybe_dedup_names(df.columns)
+   # --- FIX: Ensure unique column names ---
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
 
-    # Alternatively, to just drop duplicates:
+    # Option 1 – Safely make column names unique (rename duplicates)
+    df.columns = pd.io.common.dedup_names(list(df.columns))
+
+    # Option 2 – If you prefer just dropping duplicates instead:
     # df = df.loc[:, ~df.columns.duplicated()]
 
     st.success("Data uploaded successfully!")
