@@ -1,96 +1,135 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
 
+# ------------------ COLORS ------------------
+colors = ["#F5DDD8", "#ECC5C1", "#DAB5B0", "#CE9F9C", "#B78B86", "#9C6F6A"]
+
+# ------------------ PAGE CONFIG ------------------
 st.set_page_config(page_title="Data Dashboard", layout="wide")
 
-# --- HEADER ---
+# ------------------ CUSTOM CSS ------------------
+st.markdown("""
+<style>
+body {
+    background: linear-gradient(135deg, #F5DDD8, #ECC5C1);
+}
+header, footer {visibility: hidden;}
+.block-container {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+.header {
+    text-align: center;
+    font-size: 36px;
+    font-weight: bold;
+    color: #9C6F6A;
+    margin-bottom: 20px;
+}
+.card {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+.footer {
+    text-align: center;
+    font-size: 14px;
+    color: #9C6F6A;
+    margin-top: 50px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ------------------ HEADER ------------------
 st.markdown(
     """
-    <style>
-    body {
-        background: linear-gradient(135deg, #FDDDE6 0%, #FCC6E2 100%);
-    }
-    .main {
-        background-color: rgba(255,255,255,0.6);
-        border-radius: 15px;
-        padding: 15px;
-    }
-    </style>
-    """, unsafe_allow_html=True
+    <div class="header">
+        <img src="https://raw.githubusercontent.com/brandgirlera/data-dashboard/main/logo.png" width="80">
+        <div>My Data Dashboard</div>
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
-st.title("Upload Your Data – Multi-Chart Dashboard")
-
-# --- FILE UPLOAD ---
+# ------------------ FILE UPLOAD ------------------
 uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+
 if uploaded_file is not None:
-    # Read CSV
-    df = pd.read_csv(uploaded_file)
+    try:
+        if uploaded_file.size == 0:
+            st.error("Uploaded file is empty!")
+            st.stop()
 
-   # --- FIX: Ensure unique column names ---
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
+        # Read CSV
+        df = pd.read_csv(uploaded_file)
 
-    # Option 1 – Safely make column names unique (rename duplicates)
-    df.columns = pd.io.common.dedup_names(list(df.columns))
+        # Remove duplicate columns
+        df = df.loc[:, ~df.columns.duplicated()]
 
-    # Option 2 – If you prefer just dropping duplicates instead:
-    # df = df.loc[:, ~df.columns.duplicated()]
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+        st.stop()
 
-    st.success("Data uploaded successfully!")
+    # ------------------ PREVIEW ------------------
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("Preview of Your Data")
+        st.dataframe(df.head())
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- CHART SELECTION ---
-    st.sidebar.title("Chart Options")
-    chart_types = st.sidebar.multiselect(
-        "Select charts to display",
-        ["Scatter", "Bar", "Line", "Heatmap", "Pie"]
-    )
+    # ------------------ BASIC STATS ------------------
+    with st.container():
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("Basic Stats")
+        st.write(df.describe())
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- CHART PARAMETERS ---
-    x_col = st.sidebar.selectbox("X-axis", df.columns)
-    y_col = st.sidebar.selectbox("Y-axis", numeric_cols) if numeric_cols else None
+    # ------------------ SELECT COLUMNS ------------------
+    numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
 
-    # --- LAYOUT FOR CHARTS ---
-    col1, col2 = st.columns(2)
-
-    # --- SCATTER ---
-    if "Scatter" in chart_types and x_col and y_col:
-        with col1:
+    if len(numeric_cols) >= 2:
+        with st.container():
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("Scatter Plot")
-            fig = px.scatter(df, x=x_col, y=y_col, trendline="ols")
-            st.plotly_chart(fig, use_container_width=True)
+            x_col = st.selectbox("X-axis", numeric_cols)
+            y_col = st.selectbox("Y-axis", numeric_cols, index=1)
 
-    # --- BAR ---
-    if "Bar" in chart_types and x_col and y_col:
-        with col2:
+            fig = px.scatter(df, x=x_col, y=y_col, trendline="ols",
+                             color_discrete_sequence=colors)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # ------------------ BAR CHART ------------------
+        with st.container():
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("Bar Chart")
-            fig = px.bar(df, x=x_col, y=y_col)
-            st.plotly_chart(fig, use_container_width=True)
+            fig_bar = px.bar(df, x=x_col, y=y_col, color_discrete_sequence=colors)
+            st.plotly_chart(fig_bar, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- LINE ---
-    if "Line" in chart_types and x_col and y_col:
-        with col1:
-            st.subheader("Line Chart")
-            fig = px.line(df, x=x_col, y=y_col)
-            st.plotly_chart(fig, use_container_width=True)
-
-    # --- PIE ---
-    if "Pie" in chart_types and x_col and y_col:
-        with col2:
+        # ------------------ PIE CHART ------------------
+        with st.container():
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("Pie Chart")
-            fig = px.pie(df, names=x_col, values=y_col)
-            st.plotly_chart(fig, use_container_width=True)
+            fig_pie = px.pie(df, names=x_col, values=y_col, color_discrete_sequence=colors)
+            st.plotly_chart(fig_pie, use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- HEATMAP ---
-    if "Heatmap" in chart_types and len(numeric_cols) >= 2:
-        st.subheader("Correlation Heatmap")
-        corr = df[numeric_cols].corr()
-        fig, ax = plt.subplots()
-        sns.heatmap(corr, annot=True, cmap="coolwarm", ax=ax)
-        st.pyplot(fig)
+        # ------------------ HEATMAP ------------------
+        with st.container():
+            st.markdown('<div class="card">', unsafe_allow_html=True)
+            st.subheader("Correlation Heatmap")
+            corr = df[numeric_cols].corr()
+            fig_hm, ax = plt.subplots()
+            sns.heatmap(corr, annot=True, cmap=sns.color_palette(colors, as_cmap=True), ax=ax)
+            st.pyplot(fig_hm)
+            st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.warning("Not enough numeric columns for visualizations.")
 
-else:
-    st.info("Upload a CSV file to get started.")
+# ------------------ FOOTER ------------------
+st.markdown('<div class="footer">Built with Streamlit</div>', unsafe_allow_html=True)
