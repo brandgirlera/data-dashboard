@@ -25,15 +25,19 @@ st.markdown(
 st.title("Upload Your Data – Multi-Chart Dashboard")
 
 # --- FILE UPLOAD ---
-uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
-
-if uploaded_file:
+uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
+if uploaded_file is not None:
+    # Read CSV
     df = pd.read_csv(uploaded_file)
 
-    st.subheader("Preview of Your Data")
-    st.dataframe(df.head())
+    # --- FIX: Remove duplicate column names ---
+    # If duplicate column names exist, make them unique
+    df.columns = pd.io.parsers.ParserBase({'names':df.columns})._maybe_dedup_names(df.columns)
 
-    numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
+    # Alternatively, to just drop duplicates:
+    # df = df.loc[:, ~df.columns.duplicated()]
+
+    st.success("Data uploaded successfully!")
 
     # --- CHART SELECTION ---
     st.sidebar.title("Chart Options")
