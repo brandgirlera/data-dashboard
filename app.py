@@ -6,7 +6,8 @@ import plotly.express as px
 st.set_page_config(page_title="Data Insight Dashboard", layout="wide")
 
 # ----------------- CUSTOM STYLE -----------------
-st.markdown("""
+st.markdown(
+    """
     <style>
         .stApp {
             background: linear-gradient(120deg, #f9d5e5 0%, #fcefee 100%);
@@ -21,4 +22,12 @@ st.markdown("""
             padding: 15px;
             border-radius: 18px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bot
+            margin-bottom: 20px;
+        }
+        h1, h2, h3 {
+            color: #333;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
